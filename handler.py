@@ -97,8 +97,6 @@ def delete(event, context):
     return response
 
 # A utility function for DynamoDB to convert a dict into DynamoDB object
-
-
 def dict_to_item(raw):
     if type(raw) is dict:
         resp = {}
@@ -134,7 +132,7 @@ def dict_to_item(raw):
             'I': str(raw)
         }
 
-
+# A utility function for DynamoDB to convert a DynamoDB object into a dict(json)
 def item_to_dict(raw):
     if type(raw) is dict:
         resp = {}
