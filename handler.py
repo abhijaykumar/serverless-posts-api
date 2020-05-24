@@ -1,6 +1,8 @@
 import json
 import logging
 import boto3
+import datetime
+import dynamo
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -17,15 +19,18 @@ def create(event, context):
         "body": "An error occured while creating post."
     }
 
-    post = event['body']
+    post_str = event['body']
+    post = json.loads(post_str)
+    current_timestamp = datetime.datetime.now().isoformat()
+    post['createdAt'] = current_timestamp
+
     res = dynamodb.put_item(
-        TableName=table_name, Item=dict_to_item(json.loads(post)))
+        TableName=table_name, Item=dynamo.to_item(post))
 
     # If creation is successful
     if res['ResponseMetadata']['HTTPStatusCode'] == 200:
         response = {
             "statusCode": 201,
-            "body": post
         }
 
     return response
@@ -36,7 +41,7 @@ def get(event, context):
     # Set the default error response
     response = {
         "statusCode": 500,
-        "body": "An error occured while creating post."
+        "body": "An error occured while getting post."
     }
 
     post_id = event['pathParameters']['postId']
@@ -49,104 +54,89 @@ def get(event, context):
         logger.info(f'Post is: {post}')
         response = {
             "statusCode": 200,
-            "body": json.dumps(item_to_dict(post))
+            "body": json.dumps(dynamo.to_dict(post))
         }
 
     return response
 
 
 def all(event, context):
-    body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "input": event
+    # Set the default error response
+    response = {
+        "statusCode": 500,
+        "body": "An error occured while getting all posts."
     }
+
+    scan_result = dynamodb.scan(TableName=table_name)['Items']
+
+    posts = []
+
+    for item in scan_result:
+        posts.append(dynamo.to_dict(item))
 
     response = {
         "statusCode": 200,
-        "body": json.dumps(body)
+        "body": json.dumps(posts)
     }
 
     return response
 
 
 def update(event, context):
-    body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "input": event
+    logger.info(f'Incoming request is: {event}')
+
+    post_id = event['pathParameters']['postId']
+
+    # Set the default error response
+    response = {
+        "statusCode": 500,
+        "body": f"An error occured while updating post {post_id}"
     }
 
-    response = {
-        "statusCode": 200,
-        "body": json.dumps(body)
-    }
+    post_str = event['body']
+
+    post = json.loads(post_str)
+
+    res = dynamodb.update_item(
+        TableName=table_name,
+        Key={
+            'id': {'N': post_id}
+        },
+        UpdateExpression="set content=:c, author=:a, updatedAt=:u",
+        ExpressionAttributeValues={
+            ':c': dynamo.to_item(post['content']),
+            ':a': dynamo.to_item(post['author']),
+            ':u': dynamo.to_item(datetime.datetime.now().isoformat())
+        },
+        ReturnValues="UPDATED_NEW"
+    )
+
+    # If updation is successful for post
+    if res['ResponseMetadata']['HTTPStatusCode'] == 200:
+        response = {
+            "statusCode": 200,
+        }
 
     return response
 
 
 def delete(event, context):
-    body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "input": event
-    }
+    logger.info(f'Incoming request is: {event}')
 
+    post_id = event['pathParameters']['postId']
+
+    # Set the default error response
     response = {
-        "statusCode": 200,
-        "body": json.dumps(body)
+        "statusCode": 500,
+        "body": f"An error occured while deleting post {post_id}"
     }
 
+    res = dynamodb.delete_item(TableName=table_name, Key={
+                               'id': {'N': post_id}})
+
+    # If deletion is successful for post
+    if res['ResponseMetadata']['HTTPStatusCode'] == 200:
+        response = {
+            "statusCode": 204,
+        }
     return response
-
-# A utility function for DynamoDB to convert a dict into DynamoDB object
-def dict_to_item(raw):
-    if type(raw) is dict:
-        resp = {}
-        for k, v in raw.items():
-            if type(v) is str:
-                resp[k] = {
-                    'S': v
-                }
-            elif type(v) is int:
-                resp[k] = {
-                    'N': str(v)
-                }
-            elif type(v) is dict:
-                resp[k] = {
-                    'M': dict_to_item(v)
-                }
-            elif type(v) is bool:
-                resp[k] = {
-                    'BOOL': v
-                }
-            elif type(v) is list:
-                resp[k] = []
-                for i in v:
-                    resp[k].append(dict_to_item(i))
-
-        return resp
-    elif type(raw) is str:
-        return {
-            'S': raw
-        }
-    elif type(raw) is int:
-        return {
-            'I': str(raw)
-        }
-
-# A utility function for DynamoDB to convert a DynamoDB object into a dict(json)
-def item_to_dict(raw):
-    if type(raw) is dict:
-        resp = {}
-        for k, v in raw.items():
-            if 'S' in v:
-                resp[k] = v['S']
-            elif 'N' in v:
-                resp[k] = int(v['N'])
-            elif 'M' in v:
-                resp[k] = item_to_dict(v['M'])
-            elif 'BOOL' in v:
-                resp[k] = bool(v['BOOL'])
-            elif v is list:
-                resp[k] = []
-                for i in v:
-                    resp[k].append(dict_to_item(i))
-    return resp
