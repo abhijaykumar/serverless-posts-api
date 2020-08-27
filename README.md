@@ -1,7 +1,8 @@
 # serverless-posts-api
  A simple working example of a serverless REST API based on [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) with Python that uses [AWS DynamoDB](https://aws.amazon.com/dynamodb/) for storage.
  
-```import json
+```
+import json
 import logging
 import boto3
 import datetime
@@ -142,5 +143,6 @@ def delete(event, context):
         response = {
             "statusCode": 204,
         }
-    return response```
+    return response
+```
 Check out the full post on my blog site https://techinjektion.com/api-aws-lambda-python-dynamodb/
