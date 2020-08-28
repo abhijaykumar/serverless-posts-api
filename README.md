@@ -1,5 +1,5 @@
 # serverless-posts-api
- A simple working example of a serverless REST API based on [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) with Python that uses [AWS DynamoDB](https://aws.amazon.com/dynamodb/) for storage.
+ A serverless REST API based on [AWS Lambda](https://aws.amazon.com/lambda/), [API Gateway](https://aws.amazon.com/api-gateway/) with Python that uses [AWS DynamoDB](https://aws.amazon.com/dynamodb/) for storage.
  
 ```
 import json
